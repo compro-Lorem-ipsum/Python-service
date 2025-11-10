@@ -40,7 +40,7 @@ Catatan: opsi ini menginstal komponen compiler C++ (MSVC), toolchain, dan librar
 
 ## Setup lingkungan (direkomendasikan)
 
-Jalankan perintah berikut di PowerShell dari root proyek (`c:\Semester 7\Compro\python-service`):
+Jalankan perintah berikut di PowerShell dari root proyek :
 
 ```powershell
 # Buat virtual environment bernama .venv (hanya jika belum dibuat)
@@ -105,92 +105,4 @@ JANGAN mengunggah file `.env` yang sebenarnya ke repository publik karena berpot
 
 ---
 
-## Mengunggah proyek ke GitHub dengan aman (menangani `.env`)
 
-Langkah-langkah berikut menjelaskan cara membuat repo Git lokal, menambahkan `.gitignore` untuk mengecualikan `.env`, mengganti berkas konfigurasi nyata dengan `.env.example`, dan mendorong ke GitHub.
-
-1. Inisialisasi git (jika belum):
-
-```powershell
-git init
-```
-
-2. Buat file `.gitignore` (pastikan `.env` ada di dalamnya):
-
-```text
-# .gitignore contoh
-.venv/
-__pycache__/
-.env
-*.pyc
-dist/
-build/
-```
-
-3. Buat file contoh konfigurasi publik ` .env.example` (isi hanya placeholder, tanpa rahasia):
-
-```text
-MILVUS_HOST=localhost
-MILVUS_PORT=19530
-SIMILARITY_THRESHOLD=0.6
-PORT=5000
-DEBUG=False
-```
-
-4. Pastikan `.env` sudah ada di `.gitignore` dan tidak ter-track. Jika Anda pernah tidak sengaja commit `.env`, hapus dari index git sebelum commit:
-
-```powershell
-# Hapus dari index (tetap simpan file lokal)
-git rm --cached .env
-```
-
-5. Tambahkan file, commit, dan hubungkan ke remote GitHub:
-
-```powershell
-git add .
-git commit -m "Initial commit: add project files (exclude .env)"
-
-# Buat repo di GitHub (web) lalu hubungkan remote, contoh:
-git remote add origin https://github.com/USERNAME/REPO_NAME.git
-git branch -M main
-git push -u origin main
-```
-
-6. Jika `.env` pernah ter-commit ke remote sebelumnya dan sudah dipush, Anda harus menghapusnya dari riwayat git (operasi sensitif):
-
-Singkat: hapus file dari index, commit, lalu gunakan alat untuk membersihkan riwayat (contoh singkat, hati-hati):
-
-```powershell
-git rm --cached .env
-git commit -m "Remove .env from repo"
-# Gunakan tool seperti 'git filter-repo' atau BFG untuk menghapus file dari riwayat seluruhnya.
-# Setelah membersihkan riwayat, Anda perlu force push (hati-hati — ini akan menimpa riwayat remote):
-git push --force origin main
-```
-
-Jika ini terdengar rumit atau repo sudah berisi kontributor lain, saya bisa bantu langkah demi langkah berdasarkan situasi Anda.
-
-### Menyimpan rahasia untuk CI / deployment
-
-- Untuk menyimpan variabel environment di GitHub Actions / GitHub repository, gunakan **Settings → Secrets and variables → Actions → New repository secret**.
-- Untuk deployment ke server, simpan `.env` langsung di server (jangan di-repo publik).
-
----
-
-## Troubleshooting singkat
-
-- Jika instalasi paket gagal karena kurangnya build tools, pastikan Microsoft C++ Build Tools terpasang (lihat bagian atas README).
-- Jika insightface atau PyTorch butuh GPU, pastikan Anda menginstal versi `torch` dan `onnxruntime` yang cocok dengan CUDA Anda.
-- Jika activation script diblokir di PowerShell, gunakan `Set-ExecutionPolicy -Scope CurrentUser RemoteSigned` atau jalankan script aktivasi dengan `-ExecutionPolicy Bypass`.
-
----
-
-Jika mau, saya bisa:
-- Membuat file `.env.example` dan `.gitignore` untuk Anda sekarang.
-- Menjalankan perintah git lokal untuk menyiapkan repo dan commit awal (beri tahu jika Anda ingin saya jalankan di terminal).
-
-Terakhir: jangan lupa cek kembali `requirements.txt` bila ada paket yang perlu versinya disesuaikan untuk platform Anda.
-
----
-
-Dokumentasi ini ditulis singkat dan praktis agar Anda cepat menjalankan proyek. Jika ingin versi bahasa Inggris atau format README yang lebih panjang (bagian API endpoints, contoh curl, dll.), bilang saja.
