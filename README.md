@@ -55,22 +55,6 @@ python -m venv .venv
 .venv\Scripts\python -m pip install -r requirements.txt
 ```
 
-Jika PowerShell menolak menjalankan skrip aktivasi karena ExecutionPolicy, jalankan sekali saja (PowerShell akan mengeksekusi installer aktivasi dalam session baru):
-
-```powershell
-powershell -ExecutionPolicy Bypass -File .\.venv\Scripts\Activate.ps1
-# atau ubah policy untuk user saat ini (gunakan dengan hati-hati):
-Set-ExecutionPolicy -ExecutionPolicy RemoteSigned -Scope CurrentUser
-```
-
-Atau, tanpa mengaktifkan venv, panggil interpreter langsung:
-
-```powershell
-.venv\Scripts\python .\app.py
-.venv\Scripts\python -m pip install <paket>
-```
-
----
 
 ## Menjalankan server
 
