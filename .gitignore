@@ -1,0 +1,22 @@
+# Python / project
+.venv/
+venv/
+env/
+__pycache__/
+*.py[cod]
+*.egg-info/
+dist/
+build/
+.pytest_cache/
+.mypy_cache/
+
+# Editor / OS
+.vscode/
+.idea/
+.DS_Store
+
+# Environment files
+.env
+
+# Logs
+*.log
