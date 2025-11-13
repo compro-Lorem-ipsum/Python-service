@@ -70,8 +70,6 @@ Server akan berjalan di `http://0.0.0.0:5000` (atau port di `.env` jika Anda uba
 
 ## File konfigurasi lingkungan
 
-File `.env` di root berisi konfigurasi (contoh isi di repository Anda):
-
 ```
 # Milvus Configuration
 MILVUS_HOST=localhost
@@ -84,8 +82,6 @@ SIMILARITY_THRESHOLD=0.6
 PORT=5000
 DEBUG=False
 ```
-
-JANGAN mengunggah file `.env` yang sebenarnya ke repository publik karena berpotensi berisi kredensial.
 
 ---
 
