@@ -24,11 +24,12 @@ jobs:
           python -m pip install --upgrade pip
           pip install -r requirements.txt
 
-      - name: Zip files
-        run: zip -r app.zip . -x "*.git*"
+      - name: Create deployment package
+        run: |
+          zip -r app.zip . -x "*.git*" -x ".github/*" -x "__pycache__/*" -x "*.venv/*" -x "antenv/*"
 
       - name: Deploy to Azure Web App
-        uses: azure/webapps-deploy@v2
+        uses: azure/webapps-deploy@v3
         with:
           app-name: "face-attendance"
           publish-profile: ${{ secrets.AZUREAPPSERVICE_PUBLISHPROFILE }}
