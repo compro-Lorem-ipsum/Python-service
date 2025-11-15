@@ -1,88 +1,64 @@
-## Face Recognition API
+# Python Service
 
-> API Flask untuk pendaftaran dan verifikasi wajah menggunakan ArcFace (insightface) dan penyimpanan vektor di Milvus.
 
----
+## syarat
 
-## Ringkasan
-
-Proyek ini menjalankan layanan REST sederhana untuk:
-- Enroll (mendaftarkan) wajah karyawan
-- Verifikasi wajah untuk absensi
-- Ekstraksi embedding wajah untuk testing
-
-Kode utama:
-- `app.py` — Flask API
-- `face_service.py` — pemanggilan model ArcFace (insightface) untuk ekstraksi embedding
-- `milvus_db.py` — wrapper sederhana untuk menyimpan dan mencari embedding di Milvus
-
----
-
-## Prasyarat
-
-1. Python 3.10+ terpasang.
-2. Microsoft C++ Build Tools — diperlukan untuk membangun beberapa dependensi (mis. paket yang memerlukan kompilasi native seperti beberapa bagian dari PyTorch / paket wheel terkait). Ikuti panduan instalasi di bawah.
-3. Milvus berjalan (opsional di lingkungan pengembangan lokal) pada `MILVUS_HOST` dan `MILVUS_PORT` yang dikonfigurasi di `.env`.
+- Python 3.8 atau lebih tinggi
+- Microsoft C++ Build Tools (untuk Windows)
 
 ### Instal Microsoft C++ Build Tools (Windows)
 
-1. Buka halaman Download Visual Studio: klik "Download Build Tools".
+1. Buka halaman [Download Visual Studio](https://visualstudio.microsoft.com/downloads/): klik "Download Build Tools".
 2. Jalankan installer yang diunduh.
 3. Di jendela installer, centang opsi:
 
-   ✅ "Desktop development with C++"
+   ✅ **"Desktop development with C++"**
 
 4. Klik "Install" dan tunggu proses selesai. Setelah selesai, restart komputer jika diminta.
 
-Catatan: opsi ini menginstal komponen compiler C++ (MSVC), toolchain, dan library header yang sering dibutuhkan saat pip mencoba membangun paket dari source.
 
 ---
 
-## Setup lingkungan (direkomendasikan)
 
-Jalankan perintah berikut di PowerShell dari root proyek :
+### Buat Virtual Environment
 
-```powershell
-# Buat virtual environment bernama .venv (hanya jika belum dibuat)
+```bash
+# Windows
 python -m venv .venv
+.venv\Scripts\activate
 
-# Aktifkan venv di PowerShell
-. .\.venv\Scripts\Activate.ps1
-# atau: & .\.venv\Scripts\Activate.ps1
-
-# Upgrade pip dan install requirements
-.venv\Scripts\python -m pip install --upgrade pip
-.venv\Scripts\python -m pip install -r requirements.txt
+# Linux/Mac
+python3 -m venv .venv
+source .venv/bin/activate
 ```
 
+### 3. Install Dependencies
 
-## Menjalankan server
-
-Setelah venv aktif dan dependensi terpasang:
-
-```powershell
-python app.py
+```bash
+pip install -r requirements.txt
 ```
 
-Server akan berjalan di `http://0.0.0.0:5000` (atau port di `.env` jika Anda ubah).
+### 4. Setup Environment Variables
 
----
-
-## File konfigurasi lingkungan
+```bash
+cp .env.example .env
 
 ```
-# Milvus Configuration
-MILVUS_HOST=localhost
-MILVUS_PORT=19530
+## API Endpoints
 
-# Face Recognition Configuration
-SIMILARITY_THRESHOLD=0.6
-
-# Flask Configuration
-PORT=5000
-DEBUG=False
+### Health Check
+```
+GET /health
 ```
 
----
+### Face Service Endpoints
+```
+POST /enroll
+POST /verify
+DELETE /delete/{employee_id}
+GET /api/db/collections
+GET /employees
+```
 
+Detail lengkap API liat di `/docs`.
 
