@@ -6,25 +6,21 @@ on:
       - main
 
 jobs:
-  build-and-deploy:
+  deploy:
     runs-on: ubuntu-latest
 
     steps:
       - name: Checkout code
         uses: actions/checkout@v3
 
-      - name: Azure Login using Publish Profile
-        uses: azure/login@v1
-        with:
-          publish-profile: ${{ secrets.AZUREAPPSERVICE_PUBLISHPROFILE }}
-
-   
-      - name: Remove unused deployment files
+      # Remove files you do NOT want to deploy
+      - name: Remove unused files
         run: |
           rm -f docker-compose.yml
 
-      - name: Deploy to Azure Web App
+      - name: Deploy to Azure Web App using Publish Profile
         uses: azure/webapps-deploy@v2
         with:
-          app-name: face-attendance
+          app-name: "face-attendance"
+          publish-profile: ${{ secrets.AZURE_WEBAPP_PUBLISH_PROFILE }}
           package: .
