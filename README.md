@@ -6,7 +6,7 @@
 - Python 3.8 atau lebih tinggi
 - Microsoft C++ Build Tools (untuk Windows)
 
-### Instal Microsoft C++ Build Tools (Windows)
+### Install Microsoft C++ Build Tools (Windows)
 
 1. Buka halaman [Download Visual Studio](https://visualstudio.microsoft.com/downloads/): klik "Download Build Tools".
 2. Jalankan installer yang diunduh.
