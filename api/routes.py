@@ -1,4 +1,5 @@
 from fastapi import APIRouter, UploadFile, File, Form, HTTPException
+from api.responses import failure_to_response
 from core.container import container
 from core.config import settings
 
@@ -17,7 +18,7 @@ async def enroll_employee(
         result = face.extract_embedding_from_bytes(bytes_img)
 
         if not result.get("success", False):
-            return result
+            return failure_to_response(result)
 
         insert_result = db.insert_embedding(employee_id, result["embedding"])
 
@@ -28,6 +29,8 @@ async def enroll_employee(
             "detection_score": result.get("det_score"),
             "insert_result": insert_result
         }
+    except HTTPException as e:
+        raise e
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
 
@@ -45,7 +48,7 @@ async def verify_face(
         extract_result = face.extract_embedding_from_bytes(bytes_img)
 
         if not extract_result.get("success", False):
-            return extract_result
+            return failure_to_response(extract_result)
 
         embedding = extract_result["embedding"]
         threshold = threshold if threshold else settings.SIMILARITY_THRESHOLD
@@ -53,7 +56,7 @@ async def verify_face(
         search_result = db.search_similar(embedding, threshold)
 
         if not search_result.get("success", False):
-            return search_result
+            return failure_to_response(search_result)
 
         if not search_result.get("matched", False):
             return {
@@ -72,6 +75,8 @@ async def verify_face(
             "threshold": threshold,
             "detection_score": extract_result.get("det_score")
         }
+    except HTTPException as e:
+        raise e
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
 
@@ -82,10 +87,7 @@ async def delete_employee(employee_id: str):
         delete_result = db.delete_by_employee_id(employee_id)
 
         if not delete_result.get("success", False):  
-            if "not found" in delete_result.get("error", "").lower():
-                raise HTTPException(status_code=404, detail=delete_result["error"])
-            else:
-                raise HTTPException(status_code=500, detail=delete_result.get("error", "Unknown error"))
+            return failure_to_response(delete_result)
 
         return {
             "success": True,
@@ -93,6 +95,8 @@ async def delete_employee(employee_id: str):
             "message": "Employee data deleted successfully"
         }
 
+    except HTTPException as e:
+        raise e
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
 
@@ -106,11 +110,13 @@ async def extract_embedding(image: UploadFile = File(...)):
         result = face.extract_embedding_from_bytes(bytes_img)
 
         if not result.get("success", False):
-            return result
+            return failure_to_response(result)
 
         # Convert numpy to list
         result["embedding"] = result["embedding"].tolist()
         return result
+    except HTTPException as e:
+        raise e
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
 
@@ -118,4 +124,6 @@ async def extract_embedding(image: UploadFile = File(...)):
 async def list_employees():
     db = container.milvus_db
     result = db.list_employee_ids()
+    if not result.get("success", False):
+        return failure_to_response(result)
     return result
