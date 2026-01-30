@@ -1,8 +1,15 @@
-# Base image menggunakan Ubuntu untuk compatibility penuh
-FROM ubuntu:22.04
+# Base image menggunakan NVIDIA CUDA (GPU support)
+# nvidia/cuda:12.2.2-cudnn8-devel-ubuntu22.04 include CUDA toolkit + cuDNN
+FROM nvidia/cuda:12.2.2-cudnn8-devel-ubuntu22.04
 
 # Non-interactive install
 ENV DEBIAN_FRONTEND=noninteractive
+ENV NVIDIA_VISIBLE_DEVICES=all
+ENV NVIDIA_DRIVER_CAPABILITIES=compute,utility
+
+# Python runtime defaults
+ENV PYTHONDONTWRITEBYTECODE=1
+ENV PYTHONUNBUFFERED=1
 
 # Install Python dan system dependencies
 RUN apt-get update && apt-get install -y --no-install-recommends \
@@ -37,22 +44,16 @@ WORKDIR /app
 COPY requirements.txt .
 
 # Upgrade pip
-RUN pip3 install --upgrade pip setuptools wheel
+RUN python -m pip install --upgrade pip setuptools wheel
 
-# Install numpy first
-RUN pip3 install --no-cache-dir "numpy==1.24.3" "opencv-python-headless==4.8.1.78"
-
-# Install ONNX Runtime dengan version yang stabil
-RUN pip3 install --no-cache-dir "onnxruntime==1.14.1"
-
-# Install remaining requirements
-RUN pip3 install --no-cache-dir -r requirements.txt
-
+# Install dependencies
+RUN python -m pip install --no-cache-dir -r requirements.txt \
+    && python -m pip uninstall -y opencv-python || true
 # Copy seluruh project
 COPY . .
 
 # Expose port FastAPI
 EXPOSE 8000
 
-# Start FastAPI via uvicorn
-CMD ["uvicorn", "main:app", "--host", "0.0.0.0", "--port", "8000"]
+# Start FastAPI via uvicorn (GPU workloads usually prefer a single worker)
+CMD ["uvicorn", "main:app", "--host", "0.0.0.0", "--port", "8000", "--workers", "1"]

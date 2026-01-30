@@ -2,20 +2,23 @@ from fastapi import APIRouter, UploadFile, File, Form, HTTPException
 from api.responses import failure_to_response
 from core.container import container
 from core.config import settings
+from services.image_loader import download_image_from_url
 
 router = APIRouter()
 
 @router.post("/enroll", tags=["Enroll"])
 async def enroll_employee(
     employee_id: str = Form(...),
-    image: UploadFile = File(...)
+    image_url: str = Form(...)
 ):
     try:
         face = container.face_service
         db = container.milvus_db
 
-        bytes_img = await image.read()
-        result = face.extract_embedding_from_bytes(bytes_img)
+        bytes_img = await download_image_from_url(image_url, settings.MAX_IMAGE_BYTES)
+
+        async with container.infer_semaphore:
+            result = face.extract_embedding_from_bytes(bytes_img)
 
         if not result.get("success", False):
             return failure_to_response(result)
@@ -37,15 +40,17 @@ async def enroll_employee(
 
 @router.post("/verify", tags=["Verify"])
 async def verify_face(
-    image: UploadFile = File(...),
+    image_url: str = Form(...),
     threshold: float = Form(None),
 ):
     try:
         face = container.face_service
         db = container.milvus_db
 
-        bytes_img = await image.read()
-        extract_result = face.extract_embedding_from_bytes(bytes_img)
+        bytes_img = await download_image_from_url(image_url,settings.MAX_IMAGE_BYTES)
+
+        async with container.infer_semaphore:
+            extract_result = face.extract_embedding_from_bytes(bytes_img)
 
         if not extract_result.get("success", False):
             return failure_to_response(extract_result)
@@ -103,11 +108,13 @@ async def delete_employee(employee_id: str):
 
 
 @router.post("/extract/embedding", tags=["Extract"])
-async def extract_embedding(image: UploadFile = File(...)):
+async def extract_embedding(image_url: str = Form(...)):
     try:
         face = container.face_service
-        bytes_img = await image.read()
-        result = face.extract_embedding_from_bytes(bytes_img)
+        bytes_img = await download_image_from_url(image_url, settings.MAX_IMAGE_BYTES)
+
+        async with container.infer_semaphore:
+            result = face.extract_embedding_from_bytes(bytes_img)
 
         if not result.get("success", False):
             return failure_to_response(result)

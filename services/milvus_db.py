@@ -1,4 +1,6 @@
-from pymilvus import connections, Collection, FieldSchema, CollectionSchema, DataType, utility
+import time
+
+from pymilvus import Collection, CollectionSchema, DataType, FieldSchema, connections, utility
 
 class MilvusDB:
     def __init__(self):
@@ -7,24 +9,33 @@ class MilvusDB:
         self.host = None
         self.port = None
         self.connected = False
+        self._collection = None
+        self._collection_loaded = False
 
-    def connect(self, host, port):
+    def connect(self, host, port, retries: int = 3, delay: float = 2.0):
         self.host = host
         self.port = port
-        try:
-            connections.connect(alias="default", host=host, port=port)
-            self.connected = True
-            print("Connected to Milvus")
-            return True
-        except Exception as e:
-            self.connected = False
-            print(f"Failed to connect to Milvus: {e}")
-            return False
+        for attempt in range(1, retries + 1):
+            try:
+                connections.connect(alias="default", host=host, port=port)
+                self.connected = True
+                print("Connected to Milvus")
+                return True
+            except Exception as e:
+                self.connected = False
+                print(f"Failed to connect to Milvus (attempt {attempt}/{retries}): {e}")
+                if attempt < retries:
+                    time.sleep(delay)
+        return False
 
     def create_collection(self):
         try:
             if utility.has_collection(self.collection_name):
-                return Collection(self.collection_name)
+                self._collection = Collection(self.collection_name)
+                if not self._collection_loaded:
+                    self._collection.load()
+                    self._collection_loaded = True
+                return self._collection
 
             fields = [
                 FieldSchema(name="id", dtype=DataType.INT64, is_primary=True, auto_id=True),
@@ -42,6 +53,9 @@ class MilvusDB:
             }
 
             collection.create_index("embedding", index_params=index_params)
+            collection.load()
+            self._collection = collection
+            self._collection_loaded = True
             return collection
         except Exception as e:
             # If the call fails because there's no connection, mark as not connected
@@ -61,10 +75,17 @@ class MilvusDB:
                 return None
 
         try:
+            if self._collection:
+                if not self._collection_loaded:
+                    self._collection.load()
+                    self._collection_loaded = True
+                return self._collection
+
             if utility.has_collection(self.collection_name):
-                col = Collection(self.collection_name)
-                col.load()
-                return col
+                self._collection = Collection(self.collection_name)
+                self._collection.load()
+                self._collection_loaded = True
+                return self._collection
             return None
         except Exception as e:
             print(f"get_collection error: {e}")
@@ -80,10 +101,7 @@ class MilvusDB:
             return {"success": False, "error": "Collection not found"}
 
         try:
-            data = [
-                [employee_id],
-                [embedding.tolist()],
-            ]
+            data = [[employee_id], [embedding.tolist()]]
 
             result = col.insert(data)
             col.flush()
@@ -160,4 +178,20 @@ class MilvusDB:
             employee_ids = [item["employee_id"] for item in res]
             return {"success": True, "employee_ids": employee_ids}
         except Exception as e:
+            return {"success": False, "error": str(e)}
+
+    def health(self) -> dict:
+        if not self.connected:
+            return {"success": False, "error": "Milvus not connected"}
+
+        try:
+            if not utility.has_collection(self.collection_name):
+                return {"success": False, "error": "Collection not found"}
+            # Touch the collection metadata to ensure liveness
+            col = self.get_collection()
+            if col is None:
+                return {"success": False, "error": "Collection not found"}
+            return {"success": True, "collection": self.collection_name}
+        except Exception as e:
+            self.connected = False
             return {"success": False, "error": str(e)}

@@ -12,6 +12,8 @@ def failure_to_response(payload: dict) -> JSONResponse:
         status_code = 400
     elif "collection not found" in error_text:
         status_code = 503
+    elif "payload too large" in error_text:
+        status_code = 413
     elif "not found" in error_text:
         status_code = 404
     else:

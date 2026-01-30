@@ -1,0 +1,51 @@
+version: "3.9"
+
+services:
+  api:
+    build:
+      context: .
+      dockerfile: dockerfile
+    image: python-service:latest
+    env_file:
+      - .env
+    environment:
+      # Connect to your existing Milvus compose (network name: "milvus")
+      # Your Milvus container_name is "milvus-standalone"
+      MILVUS_HOST: milvus-standalone
+      MILVUS_PORT: 19530
+    ports:
+      - "8000:8000"
+    volumes:
+      # Persist InsightFace model downloads/cache between restarts
+      - insightface-cache:/root/.insightface
+    networks:
+      - milvus
+    restart: unless-stopped
+
+  # Optional GPU runner (only start this one if you want GPU)
+  # Usage: docker compose up --build api-gpu
+  api-gpu:
+    build:
+      context: .
+      dockerfile: dockerfile
+    image: python-service:latest
+    env_file:
+      - .env
+    environment:
+      MILVUS_HOST: milvus-standalone
+      MILVUS_PORT: 19530
+    ports:
+      - "8001:8000"
+    volumes:
+      - insightface-cache:/root/.insightface
+    gpus: all
+    networks:
+      - milvus
+    restart: unless-stopped
+
+volumes:
+  insightface-cache:
+
+networks:
+  milvus:
+    external: true
