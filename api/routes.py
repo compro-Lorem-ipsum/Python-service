@@ -1,4 +1,5 @@
-from fastapi import APIRouter, UploadFile, File, Form, HTTPException
+import anyio
+from fastapi import APIRouter, Form, HTTPException
 from api.responses import failure_to_response
 from core.container import container
 from core.config import settings
@@ -18,12 +19,12 @@ async def enroll_employee(
         bytes_img = await download_image_from_url(image_url, settings.MAX_IMAGE_BYTES)
 
         async with container.infer_semaphore:
-            result = face.extract_embedding_from_bytes(bytes_img)
+            result = await anyio.to_thread.run_sync(face.extract_embedding_from_bytes, bytes_img)
 
         if not result.get("success", False):
             return failure_to_response(result)
 
-        insert_result = db.insert_embedding(employee_id, result["embedding"])
+        insert_result = await anyio.to_thread.run_sync(db.insert_embedding, employee_id, result["embedding"])
 
         return {
             "success": True,
@@ -50,7 +51,7 @@ async def verify_face(
         bytes_img = await download_image_from_url(image_url,settings.MAX_IMAGE_BYTES)
 
         async with container.infer_semaphore:
-            extract_result = face.extract_embedding_from_bytes(bytes_img)
+            extract_result = await anyio.to_thread.run_sync(face.extract_embedding_from_bytes, bytes_img)
 
         if not extract_result.get("success", False):
             return failure_to_response(extract_result)
@@ -58,7 +59,7 @@ async def verify_face(
         embedding = extract_result["embedding"]
         threshold = threshold if threshold else settings.SIMILARITY_THRESHOLD
 
-        search_result = db.search_similar(embedding, threshold)
+        search_result = await anyio.to_thread.run_sync(db.search_similar, embedding, threshold)
 
         if not search_result.get("success", False):
             return failure_to_response(search_result)
@@ -89,7 +90,7 @@ async def verify_face(
 async def delete_employee(employee_id: str):
     try:
         db = container.milvus_db
-        delete_result = db.delete_by_employee_id(employee_id)
+        delete_result = await anyio.to_thread.run_sync(db.delete_by_employee_id, employee_id)
 
         if not delete_result.get("success", False):  
             return failure_to_response(delete_result)
@@ -130,7 +131,7 @@ async def extract_embedding(image_url: str = Form(...)):
 @router.get("/employees", tags=["List"])
 async def list_employees():
     db = container.milvus_db
-    result = db.list_employee_ids()
+    result = await anyio.to_thread.run_sync(db.list_employee_ids)
     if not result.get("success", False):
         return failure_to_response(result)
     return result

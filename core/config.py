@@ -11,9 +11,8 @@ class Settings(BaseSettings):
     MILVUS_PORT: int = Field(19530, description="Milvus port")
     SIMILARITY_THRESHOLD: float = Field(0.6, ge=0.0, le=1.0)
     MAX_IMAGE_BYTES: int = Field(5_000_000, gt=0, description="Max upload size in bytes")
-    MAX_CONCURRENT_INFERENCE: int = Field(4, gt=0, description="Limit concurrent face inferences")
+    MAX_CONCURRENT_INFERENCE: int = Field(6, gt=0, description="Limit concurrent face inferences")
 
-    # Inference/model knobs
     MODEL_NAME: str = Field("buffalo_l", description="InsightFace model name")
     DET_SIZE: tuple[int, int] = Field((640, 640), description="Detector input size")
     FACE_PROVIDERS: list[str] = Field(
@@ -31,7 +30,6 @@ class Settings(BaseSettings):
     @field_validator("FACE_PROVIDERS", mode="before")
     @classmethod
     def _parse_face_providers(cls, value):
-        # Allow comma-separated string in .env, e.g. "CUDAExecutionProvider,CPUExecutionProvider"
         if isinstance(value, str):
             return [item.strip() for item in value.split(",") if item.strip()]
         return value

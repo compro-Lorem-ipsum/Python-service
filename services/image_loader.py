@@ -1,12 +1,21 @@
 import re
-import requests
-from fastapi import UploadFile, HTTPException
 
-# async def read_image_with_limit(upload: UploadFile, limit_bytes: int):
-#     data = await upload.read()
-#     if len(data) > limit_bytes:
-#         return None, {"success": False, "error": "Image payload too large"}
-#     return data, None
+import httpx
+from fastapi import HTTPException
+
+_client: httpx.AsyncClient | None = None
+
+
+def _get_client() -> httpx.AsyncClient:
+    global _client
+    if _client is None:
+        timeout = httpx.Timeout(connect=2.0, read=5.0, write=2.0, pool=2.0)
+        _client = httpx.AsyncClient(
+            follow_redirects=True,
+            timeout=timeout,
+        )
+    return _client
+
 
 async def download_image_from_url(url: str, max_bytes: int) -> bytes:
     try:
@@ -16,26 +25,48 @@ async def download_image_from_url(url: str, max_bytes: int) -> bytes:
                 file_id = match.group(1)
                 url = f"https://drive.google.com/uc?id={file_id}"
 
-        response = requests.get(url, timeout=10)
-        response.raise_for_status()
+        client = _get_client()
 
-        if not response.headers.get("Content-Type", "").startswith("image/"):
-            raise HTTPException(
-                status_code=400,
-                detail="URL does not point to a valid image"
-            )
+        async with client.stream("GET", url) as response:
+            response.raise_for_status()
 
-        if len(response.content) > max_bytes:
-            raise HTTPException(
-                status_code=413,
-                detail="Image payload too large"
-            )
+            content_type = response.headers.get("Content-Type", "")
+            if not content_type.startswith("image/"):
+                raise HTTPException(
+                    status_code=400,
+                    detail="URL does not point to a valid image"
+                )
 
-        return response.content
+            data = bytearray()
+            total = 0
 
-    except requests.exceptions.RequestException as e:
+            async for chunk in response.aiter_bytes():
+                if not chunk:
+                    continue
+
+                total += len(chunk)
+                if total > max_bytes:
+                    raise HTTPException(
+                        status_code=413,
+                        detail="Image payload too large"
+                    )
+
+                data.extend(chunk)
+
+        return bytes(data)
+
+    except httpx.TimeoutException:
+        raise HTTPException(
+            status_code=408,
+            detail="Timeout while downloading image"
+        )
+    except httpx.RequestError as exc:
         raise HTTPException(
             status_code=400,
-            detail=f"Failed to download image: {str(e)}"
+            detail=f"Failed to download image: {exc}"
         )
-
+    except httpx.HTTPStatusError as exc:
+        raise HTTPException(
+            status_code=400,
+            detail=f"Failed to download image: HTTP {exc.response.status_code}"
+        )
